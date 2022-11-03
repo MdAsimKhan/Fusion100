@@ -14,6 +14,7 @@ public class Player : NetworkBehaviour
 
     private NetworkCharacterControllerPrototype _cc;
     private Vector3 _forward;
+    private Material _material;
 
     private void Awake()
     {
@@ -58,5 +59,29 @@ public class Player : NetworkBehaviour
                   o.GetComponent<PhysxBall>().Init(10 * _forward);
               });
         }
+    }
+    Material material
+    {
+        get
+        {
+            if (_material == null)
+                _material = GetComponentInChildren<MeshRenderer>().material;
+            return _material;
+        }
+    }
+
+    [Networked(OnChanged = nameof(OnBallSpawned))]
+    public NetworkBool spawned { get; set; }
+
+    public static void OnBallSpawned(Changed<Player> changed)
+    {
+        changed.Behaviour.material.color = Color.white;
+    }
+
+    public override void Render()
+    {
+        material.color = Color.Lerp(material.color, Color.blue, Time.deltaTime);
+        Runner.Spawn(_prefabBall, transform.position + _forward, Quaternion.LookRotation(_forward));
+        spawned = !spawned;
     }
 }
