@@ -16,6 +16,8 @@ public class Player : NetworkBehaviour
     private Vector3 _forward;
     private Material _material;
 
+    [Networked(OnChanged = nameof(OnBallSpawned))]
+    public NetworkBool spawned { get; set; }
     private void Awake()
     {
         _cc = GetComponent<NetworkCharacterControllerPrototype>();
@@ -44,20 +46,22 @@ public class Player : NetworkBehaviour
                 // Initialize the Ball before synchronizing it
                 o.GetComponent<Ball>().Init();
                     });
+                    spawned = !spawned;
+                }
+                else if ((data.buttons & NetworkInputData.MOUSEBUTTON2) != 0)
+                {
+                    delay = TickTimer.CreateFromSeconds(Runner, 0.5f);
+                    Runner.Spawn(_prefabPhysxBall,
+                      transform.position + _forward,
+                      Quaternion.LookRotation(_forward),
+                      Object.InputAuthority,
+                      (runner, o) =>
+                      {
+                          o.GetComponent<PhysxBall>().Init(10 * _forward);
+                      });
+                    spawned = !spawned;
                 }
             }
-        }
-        else if ((data.buttons & NetworkInputData.MOUSEBUTTON2) != 0)
-        {
-            delay = TickTimer.CreateFromSeconds(Runner, 0.5f);
-            Runner.Spawn(_prefabPhysxBall,
-              transform.position + _forward,
-              Quaternion.LookRotation(_forward),
-              Object.InputAuthority,
-              (runner, o) =>
-              {
-                  o.GetComponent<PhysxBall>().Init(10 * _forward);
-              });
         }
     }
     Material material
@@ -69,10 +73,6 @@ public class Player : NetworkBehaviour
             return _material;
         }
     }
-
-    [Networked(OnChanged = nameof(OnBallSpawned))]
-    public NetworkBool spawned { get; set; }
-
     public static void OnBallSpawned(Changed<Player> changed)
     {
         changed.Behaviour.material.color = Color.white;
